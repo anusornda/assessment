@@ -6,7 +6,6 @@ import (
 	"github.com/stretchr/testify/assert"
 	"io"
 	"net/http"
-	"os"
 	"strings"
 	"testing"
 )
@@ -32,9 +31,9 @@ func TestCreateExpenses(t *testing.T) {
 	assert.Nil(t, err)
 	assert.EqualValues(t, http.StatusCreated, res.StatusCode)
 	assert.Equal(t, "strawberry smoothie", ex.Title)
-	assert.Equal(t, 79, ex.Amount)
+	assert.Equal(t, 79.0, ex.Amount)
 	assert.Equal(t, "night market promotion discount 10 bath", ex.Note)
-	assert.Equal(t, []string{"food", "beverage"}, ex.tags)
+	assert.Equal(t, []string{"food", "beverage"}, ex.Tags)
 }
 
 func uri(paths ...string) string {
@@ -58,7 +57,7 @@ func (r *Response) Decode(v interface{}) error {
 
 func request(method, url string, body io.Reader) *Response {
 	req, _ := http.NewRequest(method, url, body)
-	req.Header.Add("Authorization", os.Getenv("AUTH_TOKEN"))
+	//req.Header.Add("Authorization", os.Getenv("AUTH_TOKEN"))
 	req.Header.Add("Content-Type", "application/json")
 	client := http.Client{}
 	res, err := client.Do(req)

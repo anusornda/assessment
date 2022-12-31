@@ -18,14 +18,16 @@ func main() {
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 
-	e.Use(middleware.BasicAuth(func(userName, password string, c echo.Context) (bool, error) {
+	//e.Use(middleware.BasicAuth(func(userName, password string, c echo.Context) (bool, error) {
+	//
+	//	log.Printf("userName: %s | password: %s", userName, password)
+	//	if userName == "expenseApi" && password == "123456" {
+	//		return true, nil
+	//	}
+	//	return false, nil
+	//}))
 
-		log.Printf("userName: %s | password: %s", userName, password)
-		if userName == "expenseApi" && password == "123456" {
-			return true, nil
-		}
-		return false, nil
-	}))
+	e.POST("expenses", expense.CreateExpensesHandler)
 
 	fmt.Println("Please use server.go for main file")
 	fmt.Println("start at port:", os.Getenv("PORT"))

@@ -5,7 +5,7 @@ type Expense struct {
 	Title  string   `json:"title"`
 	Amount float64  `json:"amount"`
 	Note   string   `json:"note"`
-	tags   []string `json:"tags"`
+	Tags   []string `json:"tags"`
 }
 
 type Err struct {
