@@ -6,6 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"io"
 	"net/http"
+	"strconv"
 	"strings"
 	"testing"
 )
@@ -34,6 +35,28 @@ func TestCreateExpenses(t *testing.T) {
 	assert.Equal(t, 79.0, ex.Amount)
 	assert.Equal(t, "night market promotion discount 10 bath", ex.Note)
 	assert.Equal(t, []string{"food", "beverage"}, ex.Tags)
+}
+
+func TestGetExpensesById(t *testing.T) {
+	e := Expense{
+		ID:     17,
+		Title:  "strawberry smoothie",
+		Amount: 79.0,
+		Note:   "night market promotion discount 10 bath",
+		Tags:   []string{"food", "beverage"},
+	}
+
+	var lastest Expense
+
+	res := request(http.MethodGet, uri("expenses", strconv.Itoa(e.ID)), nil)
+	err := res.Decode(&lastest)
+
+	assert.Nil(t, err)
+	assert.EqualValues(t, http.StatusOK, res.StatusCode)
+	assert.Equal(t, e.Title, lastest.Title)
+	assert.Equal(t, e.Amount, lastest.Amount)
+	assert.Equal(t, e.Note, lastest.Note)
+	assert.Equal(t, e.Tags, lastest.Tags)
 }
 
 func uri(paths ...string) string {
