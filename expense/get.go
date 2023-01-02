@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"github.com/labstack/echo/v4"
 	"github.com/lib/pq"
-	"log"
 	"net/http"
 )
 
@@ -32,13 +31,6 @@ func (h *handler) GetExpensesHandler(c echo.Context) error {
 }
 
 func (h *handler) GetExpensesByIdHandler(c echo.Context) error {
-
-	log.Printf("param id => %v", c.Param("id"))
-	//stmt, err := h.DB.Prepare("SELECT id,title, amount, note, tags FROM expenses WHERE id=?")
-	//
-	//if err != nil {
-	//	return c.JSON(http.StatusInternalServerError, Err{Message: err.Error()})
-	//}
 
 	row := h.DB.QueryRow("SELECT id,title, amount, note, tags FROM expenses WHERE id=$1", c.Param("id"))
 	ex := Expense{}
