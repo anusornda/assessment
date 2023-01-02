@@ -21,7 +21,7 @@ func main() {
 
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
-	e.Use(CheckUserAuth)
+	e.Use(expense.CheckUserAuth())
 
 	e.POST("expenses", h.CreateExpensesHandler)
 	e.GET("/expenses/:id", h.GetExpensesByIdHandler)
@@ -45,14 +45,4 @@ func main() {
 		e.Logger.Fatal(err)
 	}
 
-}
-
-func CheckUserAuth(next echo.HandlerFunc) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		auth := c.Request().Header.Values("Authorization")
-		if auth[0] == "November 10, 2009" {
-			return next(c)
-		}
-		return echo.ErrUnauthorized
-	}
 }

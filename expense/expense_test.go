@@ -305,3 +305,37 @@ func TestGetAllExpenses(t *testing.T) {
 
 	})
 }
+
+func TestCheckAuthorization(t *testing.T) {
+
+	t.Run("check authorization success", func(t *testing.T) {
+		e := echo.New()
+		e.Use(CheckUserAuth())
+		e.GET("/auth", func(c echo.Context) error {
+			return c.JSON(http.StatusOK, nil)
+		})
+
+		req := httptest.NewRequest(http.MethodGet, "/auth", nil)
+		req.Header.Set(echo.HeaderAuthorization, "November 10, 2009")
+		rec := httptest.NewRecorder()
+		e.ServeHTTP(rec, req)
+
+		assert.Equal(t, http.StatusOK, rec.Code)
+	})
+
+	t.Run("check authorization fail", func(t *testing.T) {
+		e := echo.New()
+		e.Use(CheckUserAuth())
+		e.GET("/auth", func(c echo.Context) error {
+			return c.JSON(http.StatusOK, nil)
+		})
+
+		req := httptest.NewRequest(http.MethodGet, "/auth", nil)
+		req.Header.Set(echo.HeaderAuthorization, "November 10, 2009wrong_token")
+		rec := httptest.NewRecorder()
+		e.ServeHTTP(rec, req)
+
+		assert.Equal(t, http.StatusUnauthorized, rec.Code)
+	})
+
+}
