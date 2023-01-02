@@ -1,12 +1,17 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github/anusornda/assessment/expense"
 	"log"
+	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 )
 
 func main() {
@@ -17,16 +22,6 @@ func main() {
 
 	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
-
-	//e.Use(middleware.BasicAuth(func(userName, password string, c echo.Context) (bool, error) {
-	//
-	//	fmt.Printf("Authorization : %v", c.Request().Header.Values("Authorization"))
-	//	log.Printf("userName: %s | password: %s", userName, password)
-	//	if userName == "expenseApi" && password == "123456" {
-	//		return true, nil
-	//	}
-	//	return false, nil
-	//}))
 	e.Use(checkUserAuth)
 
 	e.POST("expenses", expense.CreateExpensesHandler)
@@ -37,9 +32,21 @@ func main() {
 	fmt.Println("Please use server.go for main file")
 	fmt.Println("start at port:", os.Getenv("PORT"))
 
-	log.Printf("Server started at : 2565")
-	log.Fatal(e.Start(os.Getenv("PORT")))
-	log.Printf("bye bye!")
+	go func() {
+		if err := e.Start(os.Getenv("PORT")); err != nil && err != http.ErrServerClosed {
+			e.Logger.Fatal("shutting down the server")
+		}
+	}()
+
+	shutdown := make(chan os.Signal, 1)
+	signal.Notify(shutdown, os.Interrupt, syscall.SIGTERM)
+	<-shutdown
+	ctx, cancle := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancle()
+	if err := e.Shutdown(ctx); err != nil {
+		e.Logger.Fatal(err)
+	}
+
 }
 
 func checkUserAuth(next echo.HandlerFunc) echo.HandlerFunc {

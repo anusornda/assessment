@@ -33,7 +33,6 @@ func (r *Response) Decode(v interface{}) error {
 
 func request(method, url string, body io.Reader) *Response {
 	req, _ := http.NewRequest(method, url, body)
-	//req.Header.Add("Authorization", os.Getenv("AUTH_TOKEN"))
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("Authorization", "November 10, 2009")
 	client := http.Client{}
@@ -43,7 +42,6 @@ func request(method, url string, body io.Reader) *Response {
 
 func requestUnauthorized(method, url string, body io.Reader) *Response {
 	req, _ := http.NewRequest(method, url, body)
-	//req.Header.Add("Authorization", os.Getenv("AUTH_TOKEN"))
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("Authorization", "November 10, 2009wrong_token")
 	client := http.Client{}
