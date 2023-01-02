@@ -6,7 +6,6 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"github/anusornda/assessment/expense"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -50,18 +49,11 @@ func main() {
 }
 
 func checkUserAuth(next echo.HandlerFunc) echo.HandlerFunc {
-	log.Printf("## checkUserAuth ##")
 	return func(c echo.Context) error {
-
-		log.Printf("Authorization : %v", c.Request().Header.Values("Authorization"))
-
 		auth := c.Request().Header.Values("Authorization")
 		if auth[0] == "November 10, 2009" {
-			log.Printf("return next(c)")
 			return next(c)
 		}
-		log.Printf("echo.ErrUnauthorized")
-		// Even if middleware reaches here, it still execute the next route, why?
 		return echo.ErrUnauthorized
 	}
 }
