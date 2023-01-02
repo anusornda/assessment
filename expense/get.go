@@ -4,24 +4,18 @@ import (
 	"database/sql"
 	"github.com/labstack/echo/v4"
 	"github.com/lib/pq"
+	"log"
 	"net/http"
 )
 
-func GetExpensesHandler(c echo.Context) error {
-
-	stmt, err := db.Prepare("SELECT id,title, amount, note, tags FROM expenses")
-
+func (h *handler) GetExpensesHandler(c echo.Context) error {
+	rows, err := h.DB.Query("SELECT id,title, amount, note, tags FROM expenses")
 	if err != nil {
-		return c.JSON(http.StatusInternalServerError, Err{Message: err.Error()})
+		return err
 	}
+	defer rows.Close()
 
-	rows, err := stmt.Query()
-
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, Err{Message: err.Error()})
-	}
-
-	expense := []Expense{}
+	var expense []Expense
 	for rows.Next() {
 		var ex Expense
 
@@ -37,17 +31,18 @@ func GetExpensesHandler(c echo.Context) error {
 	return c.JSON(http.StatusOK, expense)
 }
 
-func GetExpensesByIdHandler(c echo.Context) error {
+func (h *handler) GetExpensesByIdHandler(c echo.Context) error {
 
-	stmt, err := db.Prepare("SELECT id,title, amount, note, tags FROM expenses WHERE  id=$1")
+	log.Printf("param id => %v", c.Param("id"))
+	//stmt, err := h.DB.Prepare("SELECT id,title, amount, note, tags FROM expenses WHERE id=?")
+	//
+	//if err != nil {
+	//	return c.JSON(http.StatusInternalServerError, Err{Message: err.Error()})
+	//}
 
-	if err != nil {
-		return c.JSON(http.StatusInternalServerError, Err{Message: err.Error()})
-	}
-
-	row := stmt.QueryRow(c.Param("id"))
+	row := h.DB.QueryRow("SELECT id,title, amount, note, tags FROM expenses WHERE id=$1", c.Param("id"))
 	ex := Expense{}
-	err = row.Scan(&ex.ID, &ex.Title, &ex.Amount, &ex.Note, pq.Array(&ex.Tags))
+	err := row.Scan(&ex.ID, &ex.Title, &ex.Amount, &ex.Note, pq.Array(&ex.Tags))
 
 	switch err {
 	case sql.ErrNoRows:

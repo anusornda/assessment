@@ -8,16 +8,16 @@ import (
 	_ "github.com/lib/pq"
 )
 
-var db *sql.DB
-
-func InitDB() {
+func InitDB() *handler {
 	var err error
 
-	db, err = sql.Open("postgres", os.Getenv("DATABASE_URL"))
+	db, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))
 
 	if err != nil {
 		log.Fatal("Connect to database error", err)
 	}
+
+	h := NewHandler(db)
 
 	// defer db.Close()
 
@@ -29,9 +29,11 @@ func InitDB() {
 		tags TEXT[]
 	);`
 
-	_, err = db.Exec(createTb)
+	_, err = h.DB.Exec(createTb)
 
 	if err != nil {
 		log.Fatal("can't create table", err)
 	}
+
+	return h
 }

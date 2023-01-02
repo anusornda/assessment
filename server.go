@@ -15,7 +15,7 @@ import (
 
 func main() {
 
-	expense.InitDB()
+	h := expense.InitDB()
 
 	e := echo.New()
 
@@ -23,12 +23,11 @@ func main() {
 	e.Use(middleware.Recover())
 	e.Use(checkUserAuth)
 
-	e.POST("expenses", expense.CreateExpensesHandler)
-	e.GET("/expenses/:id", expense.GetExpensesByIdHandler)
-	e.PUT("/expenses/:id", expense.UpdateExpensesByIdHandler)
-	e.GET("/expenses", expense.GetExpensesHandler)
+	e.POST("expenses", h.CreateExpensesHandler)
+	e.GET("/expenses/:id", h.GetExpensesByIdHandler)
+	e.PUT("/expenses/:id", h.UpdateExpensesByIdHandler)
+	e.GET("/expenses", h.GetExpensesHandler)
 
-	fmt.Println("Please use server.go for main file")
 	fmt.Println("start at port:", os.Getenv("PORT"))
 
 	go func() {

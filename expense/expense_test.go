@@ -1,50 +1,90 @@
+//go:build unit
+// +build unit
+
 package expense
 
 import (
-	"encoding/json"
-	"io"
+	"github.com/DATA-DOG/go-sqlmock"
+	"github.com/labstack/echo/v4"
+	"github.com/lib/pq"
+	"github.com/stretchr/testify/assert"
+	"log"
 	"net/http"
+	"net/http/httptest"
+	"strconv"
 	"strings"
+	"testing"
 )
 
-type Response struct {
-	*http.Response
-	err error
+func TestGetAllExpenses(t *testing.T) {
+	// Arrange
+	e := echo.New()
+	req := httptest.NewRequest(http.MethodGet, "/", strings.NewReader(""))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
+
+	newsMockRows := sqlmock.NewRows([]string{"id", "title", "amount", "note", "tags"}).
+		AddRow(1, "apple smoothie", 89, "no discount", pq.Array([]string{"beverage"})).
+		AddRow(2, "iPhone 14 Pro Max 1TB", 66900, "birthday gift from my love", pq.Array([]string{"gadget"}))
+
+	db, mock, err := sqlmock.New()
+	mock.ExpectQuery("SELECT id,title, amount, note, tags FROM expenses").WillReturnRows(newsMockRows)
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	h := handler{db}
+	c := e.NewContext(req, rec)
+	expected := "[{\"id\":1,\"title\":\"apple smoothie\",\"amount\":89,\"note\":\"no discount\",\"tags\":[\"beverage\"]}," +
+		"{\"id\":2,\"title\":\"iPhone 14 Pro Max 1TB\",\"amount\":66900,\"note\":\"birthday gift from my love\",\"tags\":[\"gadget\"]}]"
+
+	// Act
+	err = h.GetExpensesHandler(c)
+
+	// Assertions
+	if assert.NoError(t, err) {
+		assert.Equal(t, http.StatusOK, rec.Code)
+		assert.Equal(t, expected, strings.TrimSpace(rec.Body.String()))
+	}
 }
+func TestGetExpensesById(t *testing.T) {
+	// Arrange
+	id := 1
+	e := echo.New()
+	req := httptest.NewRequest(http.MethodGet, "/", strings.NewReader(""))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
 
-func uri(paths ...string) string {
-	host := "http://localhost:2565"
+	newsMockRows := sqlmock.NewRows([]string{"id", "title", "amount", "note", "tags"}).
+		AddRow(1, "strawberry smoothie", 79, "night market promotion discount 10 bath", pq.Array([]string{"food", "beverage"}))
 
-	if paths == nil {
-		return host
+	//db, mock, err := sqlmock.New()
+	db, mock, err := sqlmock.New(sqlmock.QueryMatcherOption(sqlmock.QueryMatcherEqual))
+	if err != nil {
+		t.Fatal(err)
 	}
 
-	url := append([]string{host}, paths...)
-	return strings.Join(url, "/")
-}
+	mock.ExpectQuery("SELECT id,title, amount, note, tags FROM expenses WHERE id=$1").
+		WithArgs(strconv.Itoa(id)).
+		WillReturnRows(newsMockRows)
+	if err != nil {
+		t.Fatalf("an error '%s' was not expected when opening a stub database connection", err)
+	}
+	h := handler{db}
 
-func (r *Response) Decode(v interface{}) error {
-	if r.err != nil {
-		return r.err
+	log.Printf("req ==> %v", req.RequestURI)
+	c := e.NewContext(req, rec)
+	c.SetPath("/:id")
+	c.SetParamNames("id")
+	c.SetParamValues(strconv.Itoa(id))
+	expected := "{\"id\":1,\"title\":\"strawberry smoothie\",\"amount\":79,\"note\":\"night market promotion discount 10 bath\",\"tags\":[\"food\",\"beverage\"]}"
+
+	// Act
+	err = h.GetExpensesByIdHandler(c)
+
+	// Assertions
+	if assert.NoError(t, err) {
+		assert.Equal(t, http.StatusOK, rec.Code)
+		assert.Equal(t, expected, strings.TrimSpace(rec.Body.String()))
 	}
 
-	return json.NewDecoder(r.Body).Decode(v)
-}
-
-func request(method, url string, body io.Reader) *Response {
-	req, _ := http.NewRequest(method, url, body)
-	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("Authorization", "November 10, 2009")
-	client := http.Client{}
-	res, err := client.Do(req)
-	return &Response{res, err}
-}
-
-func requestUnauthorized(method, url string, body io.Reader) *Response {
-	req, _ := http.NewRequest(method, url, body)
-	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("Authorization", "November 10, 2009wrong_token")
-	client := http.Client{}
-	res, err := client.Do(req)
-	return &Response{res, err}
 }
