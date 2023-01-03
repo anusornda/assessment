@@ -6,15 +6,16 @@ package expense
 import (
 	"bytes"
 	"context"
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"github.com/stretchr/testify/assert"
 	"io"
 	"log"
 	"net"
 	"net/http"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -25,7 +26,8 @@ type Response struct {
 	err error
 }
 
-const serverPort = 80
+var serverPort = os.Getenv("PORT")
+var dbUrl = os.Getenv("DATABASE_URL")
 
 func TestITCreateExpenses(t *testing.T) {
 	// Arrange
@@ -37,20 +39,17 @@ func TestITCreateExpenses(t *testing.T) {
 			}`)
 
 	t.Run("Create Expenses success", func(t *testing.T) {
-		eh := echo.New()
+		h := InitDB("postgresql://root:root@db/go-example-db?sslmode=disable")
+		eh := initialEcho()
+
+		eh.POST("expenses", h.CreateExpensesHandler)
+
 		go func(e *echo.Echo) {
-			db, err := sql.Open("postgres", "postgresql://root:root@db/go-example-db?sslmode=disable")
-			if err != nil {
-				log.Fatal(err)
-			}
-
-			h := NewHandler(db)
-
-			e.POST("expenses", h.CreateExpensesHandler)
-			e.Start(fmt.Sprintf(":%d", serverPort))
+			eh.Start(fmt.Sprintf("%v", serverPort))
 		}(eh)
+
 		for {
-			conn, err := net.DialTimeout("tcp", fmt.Sprintf("localhost:%d", serverPort), 30*time.Second)
+			conn, err := net.DialTimeout("tcp", fmt.Sprintf("localhost%v", serverPort), 30*time.Second)
 			if err != nil {
 				log.Println(err)
 			}
@@ -59,27 +58,6 @@ func TestITCreateExpenses(t *testing.T) {
 				break
 			}
 		}
-
-		//req, err := http.NewRequest(http.MethodPost, fmt.Sprintf("http://localhost:%d/expenses", serverPort), body)
-		//assert.NoError(t, err)
-		//req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
-		//client := http.Client{}
-		//
-		//// Act
-		//resp, err := client.Do(req)
-		//assert.NoError(t, err)
-		//
-		//byteBody, err := ioutil.ReadAll(resp.Body)
-		//assert.NoError(t, err)
-		//resp.Body.Close()
-		//
-		//// Assertions
-		//expected := "[{\"ID\":1,\"Title\":\"test-title\",\"Content\":\"test-content\",\"Author\":\"test-author\"}]"
-		//
-		//if assert.NoError(t, err) {
-		//	assert.Equal(t, http.StatusCreated, resp.StatusCode)
-		//	assert.Equal(t, expected, strings.TrimSpace(string(byteBody)))
-		//}
 
 		// Arrange
 		var ex Expense
@@ -140,12 +118,20 @@ func requestUnauthorized(method, url string, body io.Reader) *Response {
 }
 
 func uri(paths ...string) string {
-	//host := "http://localhost:2565"
-	host := fmt.Sprintf("http://localhost:%d", serverPort)
+	host := fmt.Sprintf("http://localhost%v", serverPort)
 
 	if paths == nil {
 		return host
 	}
 	url := append([]string{host}, paths...)
 	return strings.Join(url, "/")
+}
+
+func initialEcho() *echo.Echo {
+	e := echo.New()
+	e.Use(middleware.Logger())
+	e.Use(middleware.Recover())
+	e.Use(CheckUserAuth())
+
+	return e
 }
