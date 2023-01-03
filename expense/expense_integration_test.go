@@ -16,6 +16,7 @@ import (
 	"net"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
@@ -39,7 +40,7 @@ func TestITCreateExpenses(t *testing.T) {
 			}`)
 
 	t.Run("Create Expenses success", func(t *testing.T) {
-		h := InitDB("postgresql://root:root@db/go-example-db?sslmode=disable")
+		h := InitDB(dbUrl)
 		eh := initialEcho()
 
 		eh.POST("expenses", h.CreateExpensesHandler)
@@ -89,6 +90,69 @@ func TestITCreateExpenses(t *testing.T) {
 
 	})
 
+}
+
+func TestITGetExpensesById(t *testing.T) {
+
+	h := InitDB(dbUrl)
+	eh := initialEcho()
+
+	eh.POST("expenses", h.CreateExpensesHandler)
+	eh.GET("/expenses/:id", h.GetExpensesByIdHandler)
+
+	go func(e *echo.Echo) {
+		eh.Start(fmt.Sprintf("%v", serverPort))
+	}(eh)
+
+	for {
+		conn, err := net.DialTimeout("tcp", fmt.Sprintf("localhost%v", serverPort), 30*time.Second)
+		if err != nil {
+			log.Println(err)
+		}
+		if conn != nil {
+			conn.Close()
+			break
+		}
+	}
+
+	// Arrange
+	ex := seedExpenses(t)
+	var lastest Expense
+
+	res := request(http.MethodGet, uri("expenses", strconv.Itoa(ex.ID)), nil)
+	err := res.Decode(&lastest)
+
+	// Assertions
+
+	if assert.NoError(t, err) {
+		assert.EqualValues(t, http.StatusOK, res.StatusCode)
+		assert.EqualValues(t, ex.ID, lastest.ID)
+		assert.Equal(t, ex.Title, lastest.Title)
+		assert.Equal(t, ex.Amount, lastest.Amount)
+		assert.Equal(t, ex.Note, lastest.Note)
+		assert.Equal(t, ex.Tags, lastest.Tags)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	err = eh.Shutdown(ctx)
+	assert.NoError(t, err)
+}
+
+func seedExpenses(t *testing.T) Expense {
+	var ex Expense
+	body := bytes.NewBufferString(`{
+		"title": "strawberry smoothie",
+		"amount": 79,
+		"note": "night market promotion discount 10 bath",
+		"tags": ["food", "beverage"]
+	}`)
+
+	err := request(http.MethodPost, fmt.Sprintf("http://localhost%v/expenses", serverPort), body).Decode(&ex)
+	if err != nil {
+		t.Fatal("can't create expense:", err)
+	}
+	return ex
 }
 
 func (r *Response) Decode(v interface{}) error {
