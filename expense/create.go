@@ -24,3 +24,7 @@ func (h *handler) CreateExpensesHandler(c echo.Context) error {
 	return c.JSON(http.StatusCreated, ex)
 
 }
+
+func (h *handler) Greeting(c echo.Context) error {
+	return c.String(http.StatusOK, "Hello, World!")
+}

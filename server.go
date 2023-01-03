@@ -15,7 +15,7 @@ import (
 
 func main() {
 
-	h := expense.InitDB()
+	h := expense.InitDB(os.Getenv("DATABASE_URL"))
 
 	e := echo.New()
 
