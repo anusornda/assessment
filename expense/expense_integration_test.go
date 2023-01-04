@@ -139,6 +139,139 @@ func TestITGetExpensesById(t *testing.T) {
 	assert.NoError(t, err)
 }
 
+func TestUpdateExpensesById(t *testing.T) {
+
+	h := InitDB(dbUrl)
+	eh := initialEcho()
+
+	eh.POST("expenses", h.CreateExpensesHandler)
+	eh.PUT("/expenses/:id", h.UpdateExpensesByIdHandler)
+
+	go func(e *echo.Echo) {
+		eh.Start(fmt.Sprintf("%v", serverPort))
+	}(eh)
+
+	for {
+		conn, err := net.DialTimeout("tcp", fmt.Sprintf("localhost%v", serverPort), 30*time.Second)
+		if err != nil {
+			log.Println(err)
+		}
+		if conn != nil {
+			conn.Close()
+			break
+		}
+	}
+
+	// Arrange
+	ex := seedExpenses(t)
+
+	body := bytes.NewBufferString(`{
+				"title": "apple smoothie",
+				"amount": 89,
+				"note": "no discount",
+				"tags": ["beverage"]
+			}`)
+
+	var lastest Expense
+
+	res := request(http.MethodPut, uri("expenses", strconv.Itoa(ex.ID)), body)
+	err := res.Decode(&lastest)
+
+	// Assertions
+
+	expected := Expense{
+		ID:     ex.ID,
+		Title:  "apple smoothie",
+		Amount: 89.0,
+		Note:   "no discount",
+		Tags:   []string{"beverage"},
+	}
+
+	if assert.NoError(t, err) {
+		assert.EqualValues(t, http.StatusOK, res.StatusCode)
+		assert.EqualValues(t, expected.ID, lastest.ID)
+		assert.Equal(t, expected.Title, lastest.Title)
+		assert.EqualValues(t, expected.Amount, lastest.Amount)
+		assert.Equal(t, expected.Note, lastest.Note)
+		assert.Equal(t, expected.Tags, lastest.Tags)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	err = eh.Shutdown(ctx)
+	assert.NoError(t, err)
+}
+
+func TestITGetAllExpenses(t *testing.T) {
+
+	h := InitDB(dbUrl)
+	eh := initialEcho()
+
+	eh.GET("/expenses", h.GetExpensesHandler)
+
+	go func(e *echo.Echo) {
+		eh.Start(fmt.Sprintf("%v", serverPort))
+	}(eh)
+
+	for {
+		conn, err := net.DialTimeout("tcp", fmt.Sprintf("localhost%v", serverPort), 30*time.Second)
+		if err != nil {
+			log.Println(err)
+		}
+		if conn != nil {
+			conn.Close()
+			break
+		}
+	}
+
+	// Arrange
+	var ex []Expense
+	res := request(http.MethodGet, uri("expenses"), nil)
+	err := res.Decode(&ex)
+
+	// Assertions
+
+	if assert.NoError(t, err) {
+		assert.EqualValues(t, http.StatusOK, res.StatusCode)
+		assert.Greater(t, len(ex), 0)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	err = eh.Shutdown(ctx)
+	assert.NoError(t, err)
+}
+
+func TestGetAllExpensesUnauthorized(t *testing.T) {
+
+	h := InitDB(dbUrl)
+	eh := initialEcho()
+
+	eh.GET("/expenses", h.GetExpensesHandler)
+
+	go func(e *echo.Echo) {
+		eh.Start(fmt.Sprintf("%v", serverPort))
+	}(eh)
+
+	for {
+		conn, err := net.DialTimeout("tcp", fmt.Sprintf("localhost%v", serverPort), 30*time.Second)
+		if err != nil {
+			log.Println(err)
+		}
+		if conn != nil {
+			conn.Close()
+			break
+		}
+	}
+
+	var ex []Expense
+	res := requestUnauthorized(http.MethodGet, uri("expenses"), nil)
+	err := res.Decode(&ex)
+
+	assert.NotNil(t, err)
+	assert.EqualValues(t, http.StatusUnauthorized, res.StatusCode)
+}
+
 func seedExpenses(t *testing.T) Expense {
 	var ex Expense
 	body := bytes.NewBufferString(`{
