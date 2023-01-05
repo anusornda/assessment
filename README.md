@@ -181,3 +181,22 @@
 * แต่ละ story ควรใช้ branch ของตัวเองแล้ว merge กลับไปที่ main ด้วย 3-way merge
 ![ตัวอย่าง](three-way-merge.png)
 
+## How to run unit test
+```console
+go test --tags=unit -v ./...
+```
+
+## To run integration test
+```console
+docker-compose -f docker-compose.test.yml up --build --abort-on-container-exit --exit-code-from it_tests
+```
+
+## To tear down integration test
+```console
+docker-compose -f docker-compose.test.yml down
+```
+
+## How to run server
+```console
+DATABASE_URL=postgres://cggytisx:uOmGWO8tUuO3yfUFdnNiYbW04uzyftnl@tiny.db.elephantsql.com/cggytisx PORT=:2565 go run server.go
+```
