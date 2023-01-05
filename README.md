@@ -181,6 +181,11 @@
 * แต่ละ story ควรใช้ branch ของตัวเองแล้ว merge กลับไปที่ main ด้วย 3-way merge
 ![ตัวอย่าง](three-way-merge.png)
 
+## How to run server
+```console
+DATABASE_URL=postgres://cggytisx:uOmGWO8tUuO3yfUFdnNiYbW04uzyftnl@tiny.db.elephantsql.com/cggytisx PORT=:2565 go run server.go
+```
+
 ## How to run unit test
 ```console
 go test --tags=unit -v ./...
@@ -196,7 +201,8 @@ docker-compose -f docker-compose.test.yml up --build --abort-on-container-exit -
 docker-compose -f docker-compose.test.yml down
 ```
 
-## How to run server
+## How to build docker
 ```console
-DATABASE_URL=postgres://cggytisx:uOmGWO8tUuO3yfUFdnNiYbW04uzyftnl@tiny.db.elephantsql.com/cggytisx PORT=:2565 go run server.go
+docker build -t assessment:multi .
 ```
+
